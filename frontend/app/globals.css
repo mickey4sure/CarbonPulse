@@ -2,41 +2,141 @@
 @tailwind components;
 @tailwind utilities;
 
-@layer utilities {
-  @keyframes shimmer {
-    0% { transform: translateY(-100%); }
-    100% { transform: translateY(200%); }
-  }
+/* ── CarboNudge global styles ─────────────────────────────────────── */
 
-  @keyframes glow-pulse {
-    0%, 100% { opacity: 0.3; }
-    50% { opacity: 0.7; }
-  }
+:root {
+  --font-hanken: "Hanken Grotesk", sans-serif;
+  --font-inter: "Inter", sans-serif;
+  --font-jetbrains: "JetBrains Mono", monospace;
+}
 
-  .animate-shimmer {
-    animation: shimmer 3s infinite linear;
-  }
+/* Font variable mappings for Tailwind utility classes */
+.font-headline-lg,
+.font-headline-md,
+.font-headline-lg-mobile,
+.font-display-lg {
+  font-family: var(--font-hanken);
+}
 
-  .animate-glow-pulse {
-    animation: glow-pulse 4s infinite ease-in-out;
-  }
+.font-body-md,
+.font-body-lg {
+  font-family: var(--font-inter);
+}
 
-  @keyframes marquee {
-    0% { transform: translateX(0); }
-    100% { transform: translateX(-50%); }
-  }
+.font-label-sm,
+.font-label-xs {
+  font-family: var(--font-jetbrains);
+}
 
-  .animate-marquee {
-    display: inline-block;
-    animation: marquee 30s linear infinite;
-  }
+/* Ambient shadow utility */
+.shadow-ambient {
+  box-shadow: 0px 4px 20px rgba(51, 65, 85, 0.08);
+}
 
-  @keyframes float {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-10px); }
-  }
+/* Bento card base style */
+.bento-card {
+  background-color: white;
+  border-radius: 1rem;
+  border: 1px solid rgba(114, 121, 110, 0.1);
+}
 
-  .animate-float {
-    animation: float 6s ease-in-out infinite;
-  }
+/* Smooth scrollbar */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #c2c9bb transparent;
+}
+
+/* Material Symbols sizing reset */
+.material-symbols-outlined {
+  font-size: 20px;
+  line-height: 1;
+  vertical-align: middle;
+  user-select: none;
+}
+
+/* ── Dark Mode Overrides ─────────────────────────────────────────── */
+
+/* Force theme background & text based on design tokens */
+html.dark,
+html.dark body,
+html.dark .bg-background-subtle {
+  background-color: #233144 !important; /* inverse-surface */
+  color: #ebf1ff !important; /* inverse-on-surface */
+}
+
+/* Bento card and white surfaces in dark mode */
+html.dark .bento-card,
+html.dark .bg-surface-white,
+html.dark header.bg-surface-white,
+html.dark nav.bg-surface-white {
+  background-color: #1a2533 !important; /* slightly darker/lighter container variant */
+  color: #ebf1ff !important;
+  border-color: rgba(235, 241, 255, 0.1) !important;
+}
+
+/* Sidebar background */
+html.dark nav.bg-surface-container-low {
+  background-color: #141d27 !important;
+  border-color: rgba(235, 241, 255, 0.1) !important;
+}
+
+/* General containers */
+html.dark .bg-surface-container-low {
+  background-color: #182330 !important;
+}
+html.dark .bg-surface-container-high {
+  background-color: #2a3a4e !important;
+}
+html.dark .bg-surface-container {
+  background-color: #202d3e !important;
+}
+
+/* Interactive hover classes */
+html.dark .hover\:bg-surface-container-high:hover {
+  background-color: #2a3a4e !important;
+}
+html.dark .hover\:bg-surface-container:hover {
+  background-color: #202d3e !important;
+}
+
+/* Borders and outlines */
+html.dark .border-outline\/10,
+html.dark .border-outline\/20 {
+  border-color: rgba(235, 241, 255, 0.15) !important;
+}
+
+/* Text elements */
+html.dark .text-text-heading,
+html.dark .text-on-surface,
+html.dark h1, html.dark h2, html.dark h3, html.dark h4, html.dark h5, html.dark h6 {
+  color: #ebf1ff !important; /* inverse-on-surface */
+}
+
+html.dark .text-on-surface-variant {
+  color: #9ab0c7 !important; /* higher contrast dark gray-blue */
+}
+
+/* Adapt primary colors for readability in dark mode */
+html.dark .text-primary {
+  color: #a6d64d !important; /* secondary-fixed-dim/Growth Lime variant */
+}
+
+html.dark .bg-primary {
+  background-color: #3b6934 !important; /* eco green container */
+}
+
+/* Sidebar navigation links */
+html.dark .text-primary.bg-surface-container-high {
+  background-color: #2d5a27 !important; /* active green container */
+  color: #bcf0ae !important;
+}
+
+/* Buttons and UI components */
+html.dark button.bg-surface-white {
+  background-color: #202d3e !important;
+  color: #ebf1ff !important;
+  border-color: rgba(235, 241, 255, 0.2) !important;
+}
+html.dark button.bg-surface-white:hover {
+  background-color: #2a3a4e !important;
 }

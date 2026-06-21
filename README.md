@@ -1,119 +1,90 @@
-# 🛡️ Project-VoteChori: The Election Integrity Agent
-### *Winner-Grade Submission for PromptWars 2026*
+# 🌿 CarboNudge: Sustainable Carbon Footprint Tracker
+### *Gamified Community Sustainability Platform*
 
-**Project-VoteChori** is a production-hardened, AI-native electoral intelligence platform. It bridges the gap between complex civic processes and citizen engagement through high-fidelity simulations, agentic guidance, and a resilient cloud-native infrastructure.
-
----
-
-## 🔗 Quick Access
-- **Source Code**: [GitHub Repository](https://github.com/mickey4sure/Project-VoteChori)
-- **Official License**: [MIT License](LICENSE)
-- **Cloud Run**: [Link](https://votechori-frontend-308600645833.asia-south1.run.app)
+**CarboNudge** is a production-hardened, AI-native platform designed to help communities reduce their carbon footprints together. It offers structured activity tracking, automated AI-generated green insights, and a highly interactive community space featuring group challenges and channel-based discussions.
 
 ---
 
-## 💎 Project Vision
-In an era of electoral misinformation, **Project-VoteChori** serves as a "Single Source of Truth." By combining **Google Gemini AI** with a **Tactical Command Center**, we provide citizens with the tools to simulate, verify, and navigate the democratic process with 100% transparency.
+## 🚀 Key Feature Pillars
 
-## 🚀 Key Innovation Pillars
+### 1. 📊 Carbon Activity Log & Telemetry
+- **Footprint Logging**: Track emissions across three key areas: **Transit** (km), **Food** (grams), and **Energy** (kWh).
+- **Accurate Calculations**: Employs server-side emission calculators (following verified carbon conversion factors) to compute CO₂ equivalents dynamically.
 
-### 1. 🤖 ChoriGuard AI: Omni-Access Agent
-- **Engine**: Google Gemini Pro via real-time SSE (Server-Sent Events) streaming.
-- **Integrity**: Implements a dedicated fact-checking layer verified against our **Google Cloud SQL** knowledge base.
-- **Persona**: A professional, concise "Command Center" assistant designed for high-stakes civic clarity.
+### 2. 🤖 Gemini AI Insights
+- **Smart Coaching**: Integrates Google Gemini AI to analyze your logged activities and generate personalized, actionable recommendations to reduce your carbon footprint.
+- **Cache-Optimized**: Caches insights for 24 hours to minimize redundant API calls and optimize performance.
 
-### 2. 🕹️ AVR Simulator (Automated Voter Registration)
-- **High-Fidelity Logic**: A multi-stage simulation engine (Age Verification, Biometric Hash, Constituency Mapping).
-- **Result Persistence**: Generates cryptographically unique **EPIC-ID Receipts** (downloadable `.txt` format) for user record-keeping.
-- **UX**: WCAG AAA compliant with `aria-live` telemetry and tactical progress indicators.
+### 3. 🏆 Community Hub & Leaderboard
+- **Dynamic Leaderboard**: Ranks users based on their logged green actions, with pseudonymized user details (masked emails) for privacy.
+- **Milestone Achievements**: Track leveling progress from **Eco Recruit** up to **Eco Champion** based on logged actions and CO₂ saved.
+- **Active Challenges**: Join or leave group challenges (like *30-Day Zero Waste*, *Car-Free Week*, *Plant-Based Month*) with real-time participant counts.
 
-### 3. 🗺️ Resilient Mapping Infrastructure
-- **Dual-Engine Logic**: Automated fallback system. If **Leaflet (OpenSource)** fails, the system instantly hot-swaps to **Google Maps Embed API**.
-- **Proximity Intelligence**: Real-time booth proximity calculation and constituency identification.
-
-### 4. 📊 Tactical Command Center (Dashboard)
-- **Real-Time Telemetry**: Animated "Global Intelligence Ticker" for system-wide electoral updates.
-- **Digital Citizen Credential**: Persistent, unique **Citizen #** generated via deterministic hashing of user UIDs, stored securely in the cloud.
-- **Readiness Tracker**: High-fidelity visual metrics for electoral module completion.
+### 4. 💬 Community Discussion Boards
+- **Dedicated Channels**: Discuss topics in themed channels: `#general`, `#zero-waste`, `#transportation`, `#diet-food`, and `#energy`.
+- **Real-Time Commenting**: View chronological message feeds and post instant comments with responsive glassmorphism styles and automatic scroll alignment.
 
 ---
 
-## 🛠️ Technical Architecture
-
-```mermaid
-graph TD
-    A[Citizen UI - Next.js 14] --> B[ChoriGuard AI - Gemini Pro]
-    A --> C[Tactical Dashboard]
-    C --> D[Google Cloud SQL - PostgreSQL]
-    A --> E[AVR Simulator]
-    E --> D
-    A --> F[Dual-Engine Maps]
-    F --> G[Google Maps Fallback]
-    H[Firebase Auth] --> A
-    I[Express Backend] --> D
-    I --> B
-```
-
-### 🛰️ The Google Cloud Ecosystem
-- **Compute**: Deployed and optimized for high-concurrency environments.
-- **Database**: **Google Cloud SQL (PostgreSQL)** for enterprise-grade data persistence.
-- **Authentication**: **Firebase Identity Platform** (Google/Email OAuth).
-- **Intelligence**: **Google Gemini API** for agentic reasoning.
-
----
-
-## 📊 Factual Performance Metrics
-
-- **Testing Coverage**: **96%+** across all critical paths (Verified by professional Jest/Mocha suites).
-- **Database Latency**: **<50ms** average response time on Google Cloud SQL.
-- **Accessibility Score**: **95+ (Lighthouse)** — Fully WCAG AAA compliant.
-- **Security Posture**: Implements **Helmet.js**, **Express Rate-Limit**, and **Input Sanitization** (CWE-79/CWE-89 mitigation).
+## 🛠️ Technical Stack
+- **Frontend**: Next.js 14, Tailwind CSS, LocalStorage state sync.
+- **Backend**: Express, TypeScript, Prisma ORM, SQLite (development) & PostgreSQL (production).
+- **Authentication**: Firebase Client SDK & Firebase Admin SDK validation.
+- **Intelligence Layer**: Google Gemini API.
 
 ---
 
 ## 📦 Installation & Setup
 
 ### 1. Prerequisites
-- Node.js v20+ & pnpm
-- Google Cloud Project with Cloud SQL & Gemini API access.
-- Firebase Project for Authentication.
+- **Node.js** v20+
+- **pnpm** package manager
+- **Google Gemini API Key**
+- **Firebase Project** (for client authentication)
 
-### 2. Environment Configuration
-**Backend (.env)**
-```env
-DATABASE_URL="postgresql://[user]:[password]@[host]:[port]/[database]"
-GEMINI_API_KEY="YOUR_GEMINI_API_KEY"
-```
+### 2. Run Local Development Environment
+1. Clone the repository.
+2. Install workspace dependencies:
+   ```bash
+   pnpm install
+   ```
+3. Set up database tables and run migration:
+   ```bash
+   pnpm run migrate
+   ```
+4. Start both Next.js frontend and Express backend servers:
+   - On Windows: run backend and frontend dev commands in separate terminals:
+     ```bash
+     pnpm dev:backend
+     pnpm dev:frontend
+     ```
+   - On macOS/Linux:
+     ```bash
+     pnpm dev
+     ```
 
-**Frontend (.env.local)**
-```env
-NEXT_PUBLIC_API_URL="http://localhost:5000"
-NEXT_PUBLIC_FIREBASE_API_KEY="YOUR_FIREBASE_API_KEY"
-```
+---
 
-### 3. Execution
+## 🧪 Running the Test Suite
+Ensure everything works correctly before deploying by running the integration test suites:
 ```bash
-# Install
-pnpm install
-
-# Build & Run (Production Simulation)
-cd backend && pnpm run start
-cd frontend && pnpm run dev
+# Run backend routes and algorithm tests
+pnpm --filter backend test
 ```
 
 ---
 
-## 🧪 Verified Test Suite
-The project is backed by a 100% passing automated test pipeline:
-```bash
-PASS __tests__/AvrSimulator.test.tsx
-PASS __tests__/dashboard.test.tsx
-PASS __tests__/auth.test.tsx
-PASS __tests__/page.test.tsx
-```
+## 🛡️ Hackathon Production Deployment Guide
 
-## ⚖️ License & Integrity
-**MIT License.** This project was developed with a strict focus on electoral transparency and data ethics. "ChoriGuard AI can make mistakes. Verify important info."
+### 1. Database Configuration (PostgreSQL)
+For production, swap the database from SQLite to a managed PostgreSQL instance (e.g. AWS RDS, Google Cloud SQL, or Supabase):
+1. In `backend/prisma/schema.prisma`, update the datasource provider to `postgresql`.
+2. Generate the production Prisma client:
+   ```bash
+   pnpm --filter backend exec prisma generate
+   ```
 
----
-*Developed by Mickey aka. Harsh Kumar Singh for PromptWars 2026*
+### 2. Environment Configurations
+Prepare environment variables on your production hosting providers (such as Vercel for Frontend and Render/Heroku for Backend) using the templates:
+- **Backend**: Set `DATABASE_URL` (PostgreSQL), `GEMINI_API_KEY`, `ALLOWED_ORIGIN` (live frontend URL), and set `NODE_ENV=production` to disable local bypasses.
+- **Frontend**: Set `NEXT_PUBLIC_API_URL` to your production backend server and paste your production Firebase client credentials.

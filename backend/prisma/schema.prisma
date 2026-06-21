@@ -3,112 +3,99 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
+// ─── Core User ──────────────────────────────────────────────────────────────
+
 model User {
-  id          Int      @id @default(autoincrement())
-  firebaseUid String   @unique
-  email       String   @unique
-  createdAt   DateTime @default(now())
-  citizenId   String?  @unique
+  id                Int           @id @default(autoincrement())
+  firebaseUid       String        @unique
+  email             String        @unique
+  name              String?
+  username          String?
+  phone             String?
+  age               Int?
+  region            String?
+  country           String?
+  avatar            String?
+  tutorialCompleted Boolean       @default(false)
+  createdAt         DateTime      @default(now())
+  activities        ActivityLog[]
+  insights          Insight[]
+  challengeParticipants ChallengeParticipant[]
+  comments              Comment[]
 
   @@index([firebaseUid])
 }
 
-model State {
-  id        Int        @id @default(autoincrement())
-  name      String     @unique
-  districts District[]
-}
+// ─── Carbon Activity Log ─────────────────────────────────────────────────────
+// Stores every individual carbon-generating activity a user logs.
+// co2Kg is pre-calculated at write time by the backend lib/carbon.ts utility.
 
-model ElectionPhase {
-  id        Int        @id @default(autoincrement())
-  name      String     @unique
-  date      DateTime
-  districts District[]
-}
-
-model District {
-  id              Int            @id @default(autoincrement())
-  name            String
-  stateId         Int
-  electionPhaseId Int?
-  electionPhase   ElectionPhase? @relation(fields: [electionPhaseId], references: [id])
-  state           State          @relation(fields: [stateId], references: [id])
-  facts           FactCheck[]
-
-  @@index([stateId])
-  @@index([electionPhaseId])
-}
-
-model FactCheck {
-  id           Int       @id @default(autoincrement())
-  rumorText    String
-  officialFact String
-  sourceUrl    String
-  isVerified   Boolean   @default(false)
-  tags         String[]
-  createdAt    DateTime  @default(now())
-  districtId   Int?
-  district     District? @relation(fields: [districtId], references: [id])
-
-  @@index([districtId])
-}
-
-model MockAadhaarRecord {
-  id                Int                 @id @default(autoincrement())
-  aadhaarNumber     String              @unique
-  fullName          String
-  dateOfBirth       DateTime
-  parentId          Int?
-  isRegisteredVoter Boolean             @default(false)
-  voterIdNumber     String?             @unique
-  simulationLogs    AvrSimulationLog[]
-  parent            MockAadhaarRecord?  @relation("ParentChild", fields: [parentId], references: [id])
-  children          MockAadhaarRecord[] @relation("ParentChild")
-  documents         MockIdentityDoc[]
-}
-
-model MockIdentityDoc {
-  id             Int               @id @default(autoincrement())
-  citizenId      Int
-  documentType   String
-  documentNumber String            @unique
-  isOcrVerified  Boolean           @default(false)
-  citizen        MockAadhaarRecord @relation(fields: [citizenId], references: [id])
-}
-
-model AvrSimulationLog {
-  id          Int               @id @default(autoincrement())
-  citizenId   Int
-  status      String
-  currentStep String
-  createdAt   DateTime          @default(now())
-  citizen     MockAadhaarRecord @relation(fields: [citizenId], references: [id])
-}
-
-model Faq {
-  id        Int      @id @default(autoincrement())
-  question  String   @unique
-  answer    String
-  category  String   @default("General")
-  isCommon  Boolean  @default(false)
-  createdAt DateTime @default(now())
-}
-
-model Booth {
+model ActivityLog {
   id           Int      @id @default(autoincrement())
-  name         String
-  address      String
-  lat          Float
-  lng          Float
-  type         String
-  constituency String?
-  city         String?
-  state        String?
-  status       String   @default("Active")
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  userId       Int
+  activityType String   // "transit" | "food" | "energy"
+  label        String   // e.g. "Car", "Beef", "Grid Electricity"
+  value        Float    // numeric input quantity
+  unit         String   // "km" | "grams" | "kwh" | "litres"
+  co2Kg        Float    // pre-calculated CO₂ equivalent in kilograms
+  loggedAt     DateTime @default(now())
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, loggedAt])
 }
+
+// ─── AI-Generated Insights ───────────────────────────────────────────────────
+// Stores Gemini-generated personalized sustainability insights.
+// Cached for 24 hours to avoid redundant API calls.
+
+model Insight {
+  id          Int      @id @default(autoincrement())
+  userId      Int
+  content     String   // Gemini-generated markdown text
+  periodStart DateTime
+  periodEnd   DateTime
+  createdAt   DateTime @default(now())
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+}
+
+// ─── Challenge Join System ───────────────────────────────────────────────────
+
+model ChallengeParticipant {
+  id          Int      @id @default(autoincrement())
+  userId      Int
+  challengeId String   // e.g. "c1", "c2", "c3"
+  joinedAt    DateTime @default(now())
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, challengeId])
+  @@index([userId])
+}
+
+// ─── Community Discussion Area ────────────────────────────────────────────────
+
+model Channel {
+  id          String    @id // e.g. "general", "zero-waste", "transportation", "diet-food", "energy"
+  name        String
+  description String
+  comments    Comment[]
+}
+
+model Comment {
+  id        Int      @id @default(autoincrement())
+  channelId String
+  userId    Int
+  content   String
+  createdAt DateTime @default(now())
+  channel   Channel  @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([channelId, createdAt])
+  @@index([userId])
+}
+

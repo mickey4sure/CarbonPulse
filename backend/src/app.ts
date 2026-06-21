@@ -5,11 +5,12 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
-import factCheckRouter from './routes/factCheck';
 import userRouter from './routes/user';
-import aiChatRouter from './routes/aiChat';
-import faqRouter from './routes/faq';
-import boothRouter from './routes/booth';
+import activityRouter from './routes/activity';
+import insightsRouter from './routes/insights';
+import challengeRouter from './routes/challenge';
+import discussionRouter from './routes/discussion';
+
 import { sanitizeBody } from './middleware/sanitize';
 import { errorHandler } from './middleware/errorHandler';
 
@@ -31,15 +32,15 @@ export function createApp() {
   app.use(
     cors({
       origin: ALLOWED_ORIGIN,
-      methods: ['GET', 'POST', 'OPTIONS'],
+      methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
       allowedHeaders: ['Content-Type', 'Authorization'],
       credentials: true,
     }),
   );
 
-  // 3. Body parsing (10 kb hard cap)
-  app.use(express.json({ limit: '10kb' }));
-  app.use(express.urlencoded({ extended: false, limit: '10kb' }));
+  // 3. Body parsing (2mb cap to support custom base64 profile avatars)
+  app.use(express.json({ limit: '2mb' }));
+  app.use(express.urlencoded({ extended: false, limit: '2mb' }));
 
   // 4. Input sanitisation
   app.use(sanitizeBody);
@@ -56,13 +57,13 @@ export function createApp() {
     });
     const aiLimiter = rateLimit({
       windowMs: 60 * 60 * 1000,
-      max: 10,
+      max: 20,
       standardHeaders: true,
       legacyHeaders: false,
-      message: { error: 'AI fact-check limit reached. Please wait before trying again.' },
+      message: { error: 'AI insights limit reached. Please wait before trying again.' },
     });
     app.use('/api/', apiLimiter);
-    app.use('/api/fact-check/stream', aiLimiter);
+    app.use('/api/insights', aiLimiter);
   }
 
   // 6. Health check
@@ -71,11 +72,12 @@ export function createApp() {
   });
 
   // 7. Routes
-  app.use('/api/fact-check', factCheckRouter);
   app.use('/api/users', userRouter);
-  app.use('/api/ai-chat', aiChatRouter);
-  app.use('/api/faqs', faqRouter);
-  app.use('/api/booths', boothRouter);
+  app.use('/api/activities', activityRouter);
+  app.use('/api/insights', insightsRouter);
+  app.use('/api/challenges', challengeRouter);
+  app.use('/api/discussion', discussionRouter);
+
 
   // 8. 404
   app.use((_req, res) => {

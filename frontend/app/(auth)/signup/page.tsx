@@ -1,13 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { createUserWithEmailAndPassword, signInWithPopup } from "firebase/auth";
 import { auth, googleProvider } from "@/lib/firebase";
-import { generateCitizenId } from "@/lib/identity";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { Suspense } from "react";
-import { useLanguage } from "@/context/LanguageContext";
 
 function SignUpContent() {
   const [email, setEmail] = useState("");
@@ -15,10 +12,26 @@ function SignUpContent() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [theme, setTheme] = useState<"light" | "dark">("light");
   const router = useRouter();
   const searchParams = useSearchParams();
-  const redirectPath = searchParams.get("redirect") || "/";
-  const { t } = useLanguage();
+  const redirectPath = searchParams.get("redirect") || "/dashboard";
+
+  // Sync theme with localStorage & system preference
+  useEffect(() => {
+    const savedTheme = localStorage.getItem("theme") as "light" | "dark" | null;
+    const systemPrefersDark = typeof window !== "undefined" && window.matchMedia("(prefers-color-scheme: dark)").matches;
+    const initialTheme = savedTheme || (systemPrefersDark ? "dark" : "light");
+    setTheme(initialTheme);
+    document.documentElement.classList.toggle("dark", initialTheme === "dark");
+  }, []);
+
+  const toggleTheme = () => {
+    const newTheme = theme === "light" ? "dark" : "light";
+    setTheme(newTheme);
+    localStorage.setItem("theme", newTheme);
+    document.documentElement.classList.toggle("dark", newTheme === "dark");
+  };
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,20 +44,39 @@ function SignUpContent() {
 
     setLoading(true);
     try {
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      
-      await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/users`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          firebaseUid: userCredential.user.uid,
-          email: userCredential.user.email,
-          citizenId: generateCitizenId(userCredential.user.uid),
-        }),
-      });
+      if (auth) {
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        const token = await userCredential.user.getIdToken();
+        localStorage.setItem("carbonnudge_token", token);
+
+        await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"}/api/users`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            firebaseUid: userCredential.user.uid,
+            email: userCredential.user.email,
+          }),
+        });
+      } else {
+        console.warn("Firebase Auth unavailable. Registering mock account.");
+        const mockUid = `user-${email.split("@")[0] || "guest"}`;
+        const mockToken = `mock-${mockUid}`;
+        localStorage.setItem("carbonnudge_token", mockToken);
+
+        await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"}/api/users`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            firebaseUid: mockUid,
+            email: email,
+          }),
+        });
+      }
 
       router.push(redirectPath);
+      router.refresh();
     } catch (err: any) {
+      console.error(err);
       let message = "Account creation failed.";
       if (err.code === "auth/email-already-in-use") {
         message = "This email is already registered.";
@@ -61,18 +93,39 @@ function SignUpContent() {
 
   const handleGoogleLogin = async () => {
     setError("");
+    setLoading(true);
     try {
-      const result = await signInWithPopup(auth, googleProvider);
-      await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/users`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          firebaseUid: result.user.uid,
-          email: result.user.email,
-          citizenId: generateCitizenId(result.user.uid),
-        }),
-      });
-      router.push(redirectPath);
+      if (auth && googleProvider) {
+        const result = await signInWithPopup(auth, googleProvider);
+        const token = await result.user.getIdToken();
+        localStorage.setItem("carbonnudge_token", token);
+
+        await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"}/api/users`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            firebaseUid: result.user.uid,
+            email: result.user.email,
+          }),
+        });
+        router.push(redirectPath);
+        router.refresh();
+      } else {
+        const mockUid = "user-google-guest";
+        const mockToken = "mock-user-google-guest";
+        localStorage.setItem("carbonnudge_token", mockToken);
+
+        await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"}/api/users`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            firebaseUid: mockUid,
+            email: "google.guest@example.com",
+          }),
+        });
+        router.push(redirectPath);
+        router.refresh();
+      }
     } catch (err: any) {
       let message = "Google Signup Failed";
       if (err.code === "auth/popup-closed-by-user") {
@@ -81,109 +134,168 @@ function SignUpContent() {
         message = err.message;
       }
       setError(message);
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col transition-colors duration-300">
-      <div className="flex-1 flex items-center justify-center px-4 py-10">
-        <div className="max-w-md w-full space-y-8 p-10 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xl transition-all">
-          <div>
-            <h2 className="mt-6 text-center text-3xl font-extrabold text-slate-900 dark:text-white uppercase tracking-tight">
-              {t("auth.signup_title")}
-            </h2>
-            <p className="mt-2 text-center text-sm text-slate-500 dark:text-slate-400 font-medium">
-              {t("auth.signup_subtitle")}
+    <div className="min-h-screen w-full flex items-center justify-center bg-background dark:bg-inverse-surface text-on-surface transition-colors duration-300 relative">
+      {/* Dark Mode Toggle */}
+      <div className="absolute top-6 right-6 z-50">
+        <button
+          onClick={toggleTheme}
+          aria-label="Toggle dark mode"
+          className="p-2 rounded-full hover:bg-surface-container transition-colors"
+        >
+          <span className="material-symbols-outlined text-on-surface dark:text-inverse-on-surface">
+            {theme === "dark" ? "light_mode" : "dark_mode"}
+          </span>
+        </button>
+      </div>
+
+      <main className="relative z-10 flex min-h-full items-center justify-center p-4 md:p-6 w-full">
+        {/* Signup Card */}
+        <div className="w-full max-w-md bg-white dark:bg-slate-900 border border-outline-variant/60 dark:border-white/10 rounded-xl shadow-sm p-10 md:p-12 transition-all">
+          {/* Brand Logo */}
+          <div className="flex flex-col items-center mb-10">
+            <div className="flex items-center gap-2 mb-4">
+              <span className="material-symbols-outlined text-primary text-3xl" style={{ fontVariationSettings: "'FILL' 1" }}>
+                eco
+              </span>
+              <span className="font-headline-md text-headline-md font-bold text-primary dark:text-primary-fixed">
+                CarboNudge
+              </span>
+            </div>
+            <h1 className="font-headline-lg text-headline-lg text-on-surface dark:text-surface-bright text-center mb-2">
+              Create an Account
+            </h1>
+            <p className="font-body-md text-body-md text-on-surface-variant dark:text-on-surface-variant/80 text-center">
+              Track less. Live greener.
             </p>
           </div>
-          
+
           {error && (
-            <div className="bg-red-500/10 border border-red-500/50 text-red-600 dark:text-red-500 px-4 py-2 rounded-lg text-sm text-center font-bold">
+            <div className="bg-red-500/10 border border-red-500/30 text-red-600 dark:text-red-400 px-4 py-3 rounded-xl text-sm font-medium mb-6 text-center">
               {error}
             </div>
           )}
 
-          <form className="mt-8 space-y-6" onSubmit={handleSignUp}>
-            <div className="rounded-md shadow-sm space-y-4">
-              <div>
-                <label className="text-slate-600 dark:text-slate-300 text-sm font-bold mb-1 block uppercase tracking-widest">{t("auth.email_label")}</label>
-                <input
-                  type="email"
-                  required
-                  className="appearance-none relative block w-full px-3 py-3 border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent sm:text-sm font-medium transition-all"
-                  placeholder="email@example.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                />
+          {/* Form */}
+          <form onSubmit={handleSignUp} className="space-y-6">
+            {/* Email Field */}
+            <div className="space-y-2">
+              <label className="block font-label-sm text-label-sm text-outline dark:text-outline-variant" htmlFor="email">
+                Email Address
+              </label>
+              <input
+                id="email"
+                type="email"
+                required
+                className="w-full px-4 py-3 bg-white dark:bg-slate-800 border border-outline-variant rounded-lg font-body-md text-body-md text-on-surface dark:text-surface-bright focus:ring-1 focus:ring-primary focus:border-primary outline-none transition-all placeholder:text-outline-variant/60"
+                placeholder="alex@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+            </div>
+
+            {/* Password Field */}
+            <div className="space-y-2">
+              <label className="block font-label-sm text-label-sm text-outline dark:text-outline-variant" htmlFor="password">
+                Password
+              </label>
+              <input
+                id="password"
+                type="password"
+                required
+                className="w-full px-4 py-3 bg-white dark:bg-slate-800 border border-outline-variant rounded-lg font-body-md text-body-md text-on-surface dark:text-surface-bright focus:ring-1 focus:ring-primary focus:border-primary outline-none transition-all placeholder:text-outline-variant/60"
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+            </div>
+
+            {/* Confirm Password Field */}
+            <div className="space-y-2">
+              <label className="block font-label-sm text-label-sm text-outline dark:text-outline-variant" htmlFor="confirmPassword">
+                Confirm Password
+              </label>
+              <input
+                id="confirmPassword"
+                type="password"
+                required
+                className="w-full px-4 py-3 bg-white dark:bg-slate-800 border border-outline-variant rounded-lg font-body-md text-body-md text-on-surface dark:text-surface-bright focus:ring-1 focus:ring-primary focus:border-primary outline-none transition-all placeholder:text-outline-variant/60"
+                placeholder="••••••••"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+              />
+            </div>
+
+            {/* Action Button */}
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full py-4 bg-primary-container text-on-primary-container hover:bg-[#154212] hover:text-white font-headline-md text-headline-md rounded-lg shadow-sm active:scale-[0.98] transition-all flex justify-center items-center gap-2"
+            >
+              {loading ? "Registering..." : "Sign Up"}
+            </button>
+
+            {/* Divider */}
+            <div className="relative py-2">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-outline-variant"></div>
               </div>
-              <div>
-                <label className="text-slate-600 dark:text-slate-300 text-sm font-bold mb-1 block uppercase tracking-widest">{t("auth.password_label")}</label>
-                <input
-                  type="password"
-                  required
-                  className="appearance-none relative block w-full px-3 py-3 border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent sm:text-sm font-medium transition-all"
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                />
-              </div>
-              <div>
-                <label className="text-slate-600 dark:text-slate-300 text-sm font-bold mb-1 block uppercase tracking-widest">{t("auth.confirm_password_label")}</label>
-                <input
-                  type="password"
-                  required
-                  className="appearance-none relative block w-full px-3 py-3 border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent sm:text-sm font-medium transition-all"
-                  placeholder="••••••••"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                />
+              <div className="relative flex justify-center text-label-sm font-label-sm uppercase">
+                <span className="bg-white dark:bg-slate-900 px-4 text-outline/60 dark:text-outline-variant/60">
+                  OR
+                </span>
               </div>
             </div>
 
-            <div>
-              <button
-                type="submit"
-                disabled={loading}
-                className="group relative w-full flex justify-center py-4 px-4 border border-transparent text-sm font-black rounded-xl text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 disabled:opacity-50 uppercase tracking-[0.2em] shadow-lg shadow-blue-500/25"
-              >
-                {loading ? t("auth.creating_account") : t("auth.signup_btn")}
-              </button>
-            </div>
+            {/* Social Login */}
+            <button
+              onClick={handleGoogleLogin}
+              type="button"
+              className="w-full py-3.5 border border-outline-variant bg-white dark:bg-transparent font-body-md text-body-md text-on-surface dark:text-surface-bright rounded-lg hover:bg-surface-container transition-all flex justify-center items-center gap-3"
+            >
+              <svg className="w-5 h-5" viewBox="0 0 24 24">
+                <path
+                  d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                  fill="#4285F4"
+                />
+                <path
+                  d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                  fill="#34A853"
+                />
+                <path
+                  d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"
+                  fill="#FBBC05"
+                />
+                <path
+                  d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+                  fill="#EA4335"
+                />
+              </svg>
+              Register with Google
+            </button>
           </form>
 
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-slate-200 dark:border-slate-800"></div>
-            </div>
-            <div className="relative flex justify-center text-sm">
-              <span className="px-3 bg-white dark:bg-slate-900 text-slate-500 font-bold uppercase tracking-widest text-[10px]">
-                {t("auth.or_continue")}
-              </span>
-            </div>
-          </div>
-
-          <button
-            onClick={handleGoogleLogin}
-            className="w-full flex justify-center py-4 px-4 border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-all duration-200 font-black uppercase tracking-widest text-xs"
-          >
-            Google
-          </button>
-
-          <p className="text-center text-sm text-slate-500 dark:text-slate-400 font-medium">
-            {t("auth.have_account")}{" "}
-            <Link href="/login" className="font-black text-blue-600 dark:text-blue-500 hover:text-blue-500 dark:hover:text-blue-400 uppercase tracking-tight">
-              {t("nav.login")}
+          {/* Footer */}
+          <p className="mt-10 text-center font-body-md text-body-md text-on-surface-variant">
+            Already have an account?
+            <Link href="/login" className="text-primary dark:text-[#a6d64d] font-semibold hover:underline ml-1">
+              Sign In
             </Link>
           </p>
         </div>
-      </div>
+      </main>
     </div>
   );
 }
 
 export default function SignUpPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-slate-950 flex items-center justify-center text-white font-bold">Initializing Auth...</div>}>
+    <Suspense fallback={<div className="min-h-screen bg-slate-900 flex items-center justify-center text-white font-bold">Initializing Auth...</div>}>
       <SignUpContent />
     </Suspense>
   );

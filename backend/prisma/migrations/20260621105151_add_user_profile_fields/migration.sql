@@ -1,0 +1,7 @@
+-- AlterTable
+ALTER TABLE "User" ADD COLUMN "age" INTEGER;
+ALTER TABLE "User" ADD COLUMN "country" TEXT;
+ALTER TABLE "User" ADD COLUMN "name" TEXT;
+ALTER TABLE "User" ADD COLUMN "phone" TEXT;
+ALTER TABLE "User" ADD COLUMN "region" TEXT;
+ALTER TABLE "User" ADD COLUMN "username" TEXT;
