@@ -87,7 +87,7 @@ export default function CommunityPage() {
   const [loadingComments, setLoadingComments] = useState(false);
   const [sendingComment, setSendingComment] = useState(false);
 
-  const commentsEndRef = useRef<HTMLDivElement>(null);
+  const chatContainerRef = useRef<HTMLDivElement>(null);
 
   const renderAvatar = (avatarValue: string | undefined, sizeClass: string = "w-8 h-8 text-base") => {
     if (avatarValue && avatarValue.startsWith("data:image")) {
@@ -210,7 +210,9 @@ export default function CommunityPage() {
 
   // Scroll to bottom on new comments
   useEffect(() => {
-    commentsEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (chatContainerRef.current) {
+      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+    }
   }, [comments]);
 
   // Toggle Challenge Joined Status
@@ -504,7 +506,7 @@ export default function CommunityPage() {
             })()}
 
             {/* Comments Scrollable area */}
-            <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
+            <div ref={chatContainerRef} className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
               {loadingComments ? (
                 <div className="h-full flex items-center justify-center text-on-surface-variant font-body-md text-sm">
                   Loading discussions...
@@ -551,7 +553,6 @@ export default function CommunityPage() {
                   </div>
                 ))
               )}
-              <div ref={commentsEndRef} />
             </div>
 
             {/* Post comment input */}
