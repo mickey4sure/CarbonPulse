@@ -17,7 +17,7 @@ router.get("/joined", requireAuth, async (req: AuthenticatedRequest, res, next) 
       select: { challengeId: true },
     });
 
-    res.json(joined.map((j) => j.challengeId));
+    res.json(joined.map((j: { challengeId: string }) => j.challengeId));
   } catch (err) {
     next(err);
   }
@@ -85,7 +85,7 @@ router.get("/stats", requireAuth, async (req: AuthenticatedRequest, res, next) =
       },
     });
 
-    const stats = counts.reduce((acc, curr) => {
+    const stats = counts.reduce((acc: Record<string, number>, curr: { challengeId: string; _count: { _all: number } }) => {
       acc[curr.challengeId] = curr._count._all;
       return acc;
     }, {} as Record<string, number>);

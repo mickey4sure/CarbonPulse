@@ -17,7 +17,7 @@ export function markModuleCompleted(moduleId: string): void {
   try {
     const completed = getCompletedModules();
     completed.add(moduleId);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify([...completed]));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(Array.from(completed)));
     // Dispatch a custom event so any listening page can react
     window.dispatchEvent(new CustomEvent("moduleCompleted", { detail: moduleId }));
   } catch {

@@ -68,7 +68,7 @@ router.get("/channels/:channelId/comments", requireAuth, async (req: Authenticat
       orderBy: { createdAt: "asc" },
     });
 
-    const formattedComments = comments.map((c) => {
+    const formattedComments = comments.map((c: any) => {
       const isSelf = c.user.email === req.user!.email;
       const [local, domain] = c.user.email.split("@");
       const maskedEmail = local.length > 2 ? `${local.substring(0, 2)}***@${domain}` : `***@${domain}`;
